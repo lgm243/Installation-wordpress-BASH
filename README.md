@@ -1,2 +1,2 @@
 # Installation-wordpress-BASH
-Bash WordPress install with WP-Cli
+Bash WordPress install avec WP-Cli
