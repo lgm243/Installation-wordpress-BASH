@@ -248,9 +248,9 @@ wp option update blog_public 0
 # Supprime les thèmes et plugins et arcticles
 bot "Je supprime Hello Dolly, les thèmes de base"
 wp plugin uninstall hello --skip-delete
+wp theme delete twentyseventeen
 wp theme delete twentysixteen
 wp theme delete twentyfifteen
-wp theme delete twentyfourteen
 wp option update blogdescription ''
 
 # Permalinks to /%postname%/
