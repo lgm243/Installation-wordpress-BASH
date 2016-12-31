@@ -93,10 +93,10 @@ fi
 
 
 # Paths
-rootpath="/Users/Thomas/hubiC/1.LGMCRATION/2.SITEWEB/"
+rootpath="/Applications/MAMP/htdocs/"
 pathtoinstall="${rootpath}${foldername}/"
 url="http://localhost:8888/$foldername/"
-acfkey="b3JkZXJfaWQ9Nzc2NjF8dHlwZT1kZXZlbG9wZXJ8ZGF0ZT0yMDE2LTAzLTE4IDE1OjU4OjA0"
+acfkey="lacleACF"
 
 success "Récap"
 echo "--------------------------------------"
@@ -169,6 +169,9 @@ define('WP_POST_REVISIONS', 3);
 // Supprimer automatiquement la corbeille tous les 7 jours
 define('EMPTY_TRASH_DAYS', 7);
 
+// sauvegarde auto 5 min
+define('AUTOSAVE_INTERVAL', 300 ); // seconds
+
 //Mode debug
 define('WP_DEBUG', true);
 PHP
@@ -193,6 +196,15 @@ git clone https://github.com/lgm243/wordpress.git
 # Modifie le nom du theme
 bot "Je modifie le nom du theme"
 mv wordpress $foldername
+
+# Modifie le fichier style.scss
+bot "Je modifie le fichier style.sccss du thème $foldername"
+echo "/* 
+	Theme Name: $foldername
+	Author: Lgmcreation
+	Author URI: http://www.lgmcreation.fr
+	Version: 1.0.0
+*/" > $foldername/dev/css/style.scss
 
 # Supprime le dossier cache git 
 find ./ -depth -name ".git" -exec rm -Rf {}
