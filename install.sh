@@ -3,8 +3,7 @@
 # Automatize WordPress installation
 # bash install.sh
 #
-# Inspirated from Maxime BJ
-# For more information, please visit 
+# https://github.com/posykrat/dfwp_tools/blob/master/install.sh
 # http://www.wp-spread.com/tuto-wp-cli-comment-installer-et-configurer-wordpress-en-moins-dune-minute-et-en-seulement-un-clic/
 
 #  ==============================
@@ -91,31 +90,47 @@ if [ -z "$prefix" ]
 		exit
 fi
 
+# On récupère l'ID admin
+# Si pas de valeur renseignée, message d'erreur et exit
+read -p "ID Admin ? " idadmin
+if [ -z "$idadmin" ]
+	then
+		error 'ID admin'
+		exit
+fi
+
 
 # Paths
+path=`pwd` #Repertoir courant du  script
 rootpath="/Applications/MAMP/htdocs/"
 pathtoinstall="${rootpath}${foldername}/"
 url="http://localhost:8888/$foldername/"
-acfkey="lacleACF"
+
+#Variables
+acfkey="b3JkZXJfaWQ9Nzc2NjF8dHlwZT1kZXZlbG9wZXJ8ZGF0ZT0yMDE2LTAzLTE4IDE1OjU4OjA0"
+ideditor=`expr $idadmin + 1`
+
+# Fichiers à inclure
+maj="${path}/maj_htaccess.txt"
+htaccess_includes="${path}/htaccess_dossier_includes.txt"
+htaccess_content_upload="${path}/htaccess_dossier_content_upload.txt"
+
+# Admin Email
+adminemail="contact@lgmcreation.fr"
+
+# BASE DE DONNEE
+dbname=$foldername
+dbuser=root
+dbpass=root
+dbprefix=$prefix"_"
 
 success "Récap"
 echo "--------------------------------------"
 echo -e "Url : $url"
 echo -e "Foldername : $foldername"
 echo -e "Titre du projet : $title"
+echo -e "Id editeur : $ideditor"
 echo "--------------------------------------"
-
-# Admin login
-
-adminemail="contact@lgmcreation.fr"
-
-# DB
-dbname=$foldername
-dbuser=root
-dbpass=root
-dbprefix=$prefix"_"
-
-
 #  ==============================
 #  = The show is about to begin =
 #  ==============================
@@ -136,6 +151,7 @@ fi
 
 # Create directory
 bot "Je crée le dossier : $foldername"
+cd $rootpath
 mkdir $foldername
 cd $foldername
 
@@ -184,9 +200,6 @@ wp db create
 bot "J'installe WordPress..."
 wp core install --url=$url --title="$title" --admin_user=$adminlogin --admin_email=$adminemail --admin_password=$adminpass
 
-
-
-
 # Télécharge thème Wordpress par default
 bot "Je télécharge mon thème de base"
 # cd $pathtoinstall
@@ -197,14 +210,14 @@ git clone https://github.com/lgm243/wordpress.git
 bot "Je modifie le nom du theme"
 mv wordpress $foldername
 
-# Modifie le fichier style.scss
+# Modifie le fichier style.sccss
 bot "Je modifie le fichier style.sccss du thème $foldername"
 echo "/* 
 	Theme Name: $foldername
 	Author: Lgmcreation
 	Author URI: http://www.lgmcreation.fr
 	Version: 1.0.0
-*/" > $foldername/dev/css/style.scss
+*/" > $foldername/dev/css/_version.scss
 
 # Supprime le dossier cache git 
 find ./ -depth -name ".git" -exec rm -Rf {}
@@ -213,21 +226,21 @@ find ./ -depth -name ".git" -exec rm -Rf {}
 bot "J'active le thème $foldername:"
 wp theme activate $foldername
 
-# Plugins install
-bot "J'installe les plugin yoast hidelogin"
-wp plugin install wordpress-seo --activate
-wp plugin install wps-hide-login 
+# # Plugins install
+# bot "J'installe les plugin yoast hidelogin"
+# wp plugin install wordpress-seo --activate
+# wp plugin install wps-hide-login 
 
-# Si on a bien une clé acf pro
-bot "J'installe ACF PRO"
-# cd $pathtoinstac
-cd ..
-cd plugins
-curl -L -v 'http://connect.advancedcustomfields.com/index.php?p=pro&a=download&k='$acfkey > advanced-custom-fields-pro.zip
-wp plugin install advanced-custom-fields-pro.zip --activate
-rm -f advanced-custom-fields-pro.zip
+# # Si on a bien une clé acf pro
+# bot "J'installe ACF PRO"
+# # cd $pathtoinstac
+# cd ..
+# cd plugins
+# curl -L -v 'http://connect.advancedcustomfields.com/index.php?p=pro&a=download&k='$acfkey > advanced-custom-fields-pro.zip
+# wp plugin install advanced-custom-fields-pro.zip --activate
+# rm -f advanced-custom-fields-pro.zip
 
-# Misc cleanup
+# Supprime post articles terms
 bot "Je supprime les posts, comments et terms"
 wp site empty --yes
 
@@ -241,13 +254,13 @@ wp post create --post_type=page --post_title='Mentions Légales' --post_status=p
 #Crée articles
 curl http://loripsum.net/api/5 | wp post generate --post_content --count=5
 
-# CHANGE ID ADMIN 580
+# CHANGE ID ADMIN
 bot "Je modifie l'ID de l'ADMIN"
 wp db query "
-UPDATE ${prefix}_users SET ID = 580 WHERE ID = 1;
-UPDATE ${prefix}_usermeta SET user_id=580 WHERE user_id=1;
-UPDATE ${prefix}_posts SET post_author=580 WHERE post_author=0;
-ALTER TABLE ${prefix}_users AUTO_INCREMENT = 581
+UPDATE ${prefix}_users SET ID = ${idadmin} WHERE ID = 1;
+UPDATE ${prefix}_usermeta SET user_id=${idadmin} WHERE user_id=1;
+UPDATE ${prefix}_posts SET post_author=${idadmin} WHERE post_author=0;
+ALTER TABLE ${prefix}_users AUTO_INCREMENT = ${ideditor};
 "
 
 # Définition page accueil et articles et SEO
@@ -265,16 +278,16 @@ wp theme delete twentysixteen
 wp theme delete twentyfifteen
 wp option update blogdescription ''
 
-# Permalinks to /%postname%/
+# Active Permalien
 bot "J'active la structure des permaliens"
 wp rewrite structure "/%postname%/" --hard
 wp rewrite flush --hard
 
-# cat and tag base update
+# Modifie le nom de Catégorie et Tag
 wp option update category_base theme
 wp option update tag_base sujet
 
-# Menu stuff
+# Crée le Menu 
 bot "Je crée le menu principal, assigne les pages, et je lie l'emplacement du thème : "
 wp menu create "Menu Principal"
 wp menu item add-post menu-principal 1
@@ -282,32 +295,26 @@ wp menu item add-post menu-principal 2
 wp menu item add-post menu-principal 3
 wp menu location assign menu-principal main-menu
 
-#Modifier le fichier htaccess
+# Modifie le fichier htaccess
 bot "J'ajoute des règles Apache dans le fichier htaccess"
-cd ../..
-echo "
-#Interdire le listage des repertoires
-Options All -Indexes
+cd $pathtoinstall
+cat $maj >> .htaccess
 
-#Interdire l'accès au fichier wp-config.php
-<Files wp-config.php>
- 	order allow,deny
-	deny from all
-</Files>
+#Ajout htaccess wp-includes
+cp  $htaccess_includes $pathtoinstall/wp-includes/.htaccess
 
-#Intedire l'accès au fichier htaccess lui même
-<Files .htaccess>
-	order allow,deny 
-	deny from all 
-</Files>
-" >> .htaccess
+#Ajout htaccess wp-content
+cp  $htaccess_includes $pathtoinstall/wp-content/.htaccess
+
+#Ajout htaccess wp-uplaod
+cp  $htaccess_content_upload $pathtoinstall/wp-content/uploads/.htaccess
 
 rm -f license.txt
 rm -f readme.html
 rm -f wp-cli.yml
 
 
-# Finish !
+# Fin
 success "L'installation est terminée !"
 echo "--------------------------------------"
 echo -e "Url			: $url"
@@ -322,15 +329,14 @@ echo -e "DB prefix 		: $dbprefix"
 echo -e "WP_DEBUG 		: TRUE"
 echo "--------------------------------------"
 
-# Open in browser
+# Ouvre le site sur ma page web
 open $url
 open "${url}wp-admin"
 
-# Open in Sublime text
+# Ouvre Sublime text
 cd wp-content/themes
 cd $foldername
 sublime .
-
 
 
 
