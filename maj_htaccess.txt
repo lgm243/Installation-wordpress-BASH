@@ -1,0 +1,240 @@
+#bad_url_access
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    RewriteCond %{REQUEST_URI} !wp-includes/js/tinymce/wp-tinymce\.php$
+    RewriteRule ^(php\.ini|wp-config\.php|wp-includes/.+\.php|wp-admin/(admin-functions|install|menu-header|setup-config|([^/]+/)?menu|upgrade-functions|includes/.+)\.php)$ [R=404,L,NC]
+</IfModule>
+# END
+
+#wp_version
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    RewriteRule ^/readme\.html$ - [R=404,L,NC]
+</IfModule>
+# END 
+
+#no_x_powered_by
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+</IfModule>
+# END
+
+#directory_listing
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+#
+
+# Protection contre les injections de fichiers
+RewriteCond %{REQUEST_METHOD} GET
+RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=http:// [OR]
+RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=(\.\.//?)+ [OR]
+RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=/([a-z0-9_.]//?)+ [NC]
+RewriteRule .* - [F]
+
+# Protections diverses (XSS, clickjacking et MIME-Type sniffing)
+<ifModule mod_headers.c>
+Header set X-XSS-Protection "1; mode=block"
+Header always append X-Frame-Options SAMEORIGIN
+Header set X-Content-Type-Options: "nosniff”
+</ifModule>
+
+# Alternative pour empêcher le listage des répertoires
+IndexIgnore *
+
+# Masquer les informations du serveur
+ServerSignature Off
+
+# Activation du suivi des liens symboliques
+Options +FollowSymLinks
+
+# Choix du fuseau horaire
+SetEnv TZ Europe/Paris
+
+# Encodage par défaut des fichiers textes et HTML
+AddDefaultCharset UTF-8
+
+# Protéger le fichier wp-config.php
+<files wp-config.php>
+order allow,deny
+deny from all
+</files>
+
+# Protéger les fichiers .htaccess et .htpasswds
+<Files ~ "^.*\.([Hh][Tt][AaPp])">
+order allow,deny
+deny from all
+satisfy all
+</Files>
+
+# Éviter le spam de commentaires
+<IfModule mod_rewrite.c>
+RewriteCond %{REQUEST_METHOD} POST
+RewriteCond %{REQUEST_URI} .wp-comments-post\.php*
+RewriteCond %{HTTP_REFERER} !.monsite.com.* [OR]
+RewriteCond %{HTTP_USER_AGENT} ^$
+RewriteRule (.*) ^http://%{REMOTE_ADDR}/$ [R=301,L]
+</IfModule>
+
+# Éviter que l'on découvre l'identifiant d'un auteur
+<IfModule mod_rewrite.c>
+RewriteCond %{QUERY_STRING} ^author=([0-9]*)
+RewriteRule .* - [F]
+</IfModule>
+
+# Désactiver le hotlinking de vos images
+RewriteEngine On
+RewriteCond %{HTTP_REFERER} !^$
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?monsite.com [NC]
+RewriteRule \.(jpg|jpeg|png|gif)$ http://fakeimg.pl/400x200/?text=Pas_touche_aux_images [NC,R,L]
+
+# Redirection du site sans www vers www
+RewriteEngine On
+RewriteCond %{HTTP_HOST} ^monsite.com [NC]
+RewriteRule ^(.*)$ http://www.monsite.com/$1 [L,R=301]
+
+# Redirection vers HTTPS 
+RewriteCond     %{SERVER_PORT} ^80$
+RewriteRule     ^(.*)$ https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+
+# Forcer le téléchargement pour ces types de fichiers
+AddType application/octet-stream .doc .docx .xls .xlsx .csv .mp3 .mp4
+
+# Mise en cache des fichiers dans le navigateur
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresDefault "access plus 1 month"
+
+ExpiresByType text/html "access plus 0 seconds"
+ExpiresByType text/xml "access plus 0 seconds"
+ExpiresByType application/xml "access plus 0 seconds"
+ExpiresByType application/json "access plus 0 seconds"
+ExpiresByType application/pdf "access plus 0 seconds"
+
+ExpiresByType application/rss+xml "access plus 1 hour"
+ExpiresByType application/atom+xml "access plus 1 hour"
+
+ExpiresByType application/x-font-ttf "access plus 1 month"
+ExpiresByType font/opentype "access plus 1 month"
+ExpiresByType application/x-font-woff "access plus 1 month"
+ExpiresByType application/x-font-woff2 "access plus 1 month"
+ExpiresByType image/svg+xml "access plus 1 month"
+ExpiresByType application/vnd.ms-fontobject "access plus 1 month"
+
+ExpiresByType image/jpg "access plus 1 month"
+ExpiresByType image/jpeg "access plus 1 month"
+ExpiresByType image/gif "access plus 1 month"
+ExpiresByType image/png "access plus 1 month"
+
+ExpiresByType video/ogg "access plus 1 month"
+ExpiresByType audio/ogg "access plus 1 month"
+ExpiresByType video/mp4 "access plus 1 month"
+ExpiresByType video/webm "access plus 1 month"
+
+ExpiresByType text/css "access plus 6 month"
+ExpiresByType application/javascript "access plus 6 month"
+
+ExpiresByType application/x-shockwave-flash "access plus 1 week"
+ExpiresByType image/x-icon "access plus 1 week"
+
+</IfModule>
+
+# En-têtes
+Header unset ETag
+FileETag None
+
+<ifModule mod_headers.c>  
+<filesMatch "\.(ico|jpe?g|png|gif|swf)$">  
+    Header set Cache-Control "public"  
+</filesMatch>  
+<filesMatch "\.(css)$">  
+    Header set Cache-Control "public"  
+</filesMatch>  
+<filesMatch "\.(js)$">  
+    Header set Cache-Control "private"  
+</filesMatch>  
+<filesMatch "\.(x?html?|php)$">  
+    Header set Cache-Control "private, must-revalidate"
+</filesMatch>
+</ifModule>
+
+# Compressions des fichiers statiques
+<IfModule mod_deflate.c> 
+    AddOutputFilterByType DEFLATE text/xhtml text/html text/plain text/xml text/javascript application/x-javascript text/css 
+    BrowserMatch ^Mozilla/4 gzip-only-text/html 
+    BrowserMatch ^Mozilla/4\.0[678] no-gzip 
+    BrowserMatch \bMSIE !no-gzip !gzip-only-text/html 
+    SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png)$ no-gzip dont-vary 
+    Header append Vary User-Agent env=!dont-vary 
+</IfModule>  
+
+AddOutputFilterByType DEFLATE text/html  
+AddOutputFilterByType DEFLATE text/plain  
+AddOutputFilterByType DEFLATE text/xml  
+AddOutputFilterByType DEFLATE text/css  
+AddOutputFilterByType DEFLATE text/javascript
+AddOutputFilterByType DEFLATE font/opentype
+AddOutputFilterByType DEFLATE application/rss+xml
+AddOutputFilterByType DEFLATE application/javascript
+AddOutputFilterByType DEFLATE application/json
+
+# block visitors referred from bad website
+RewriteEngine on
+RewriteCond %{HTTP_REFERER} iedit\.ilovevitaly\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} iloveitaly\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} econom\.co [NC,OR]
+RewriteCond %{HTTP_REFERER} semalt\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} forum\.topic44637676\.darodar\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} darodar\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} iskalko\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} ilovevitaly\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} ilovevitaly\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} o-o-8-o-o\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} o-o-6-o-o\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} buttons-for-website\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} semalt.semalt\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} cenoval\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} priceg\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} darodar\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} cenokos\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} seoexperimenty\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} gobongo\.info [NC,OR]
+RewriteCond %{HTTP_REFERER} vodkoved\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} adcash\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} websocial\.me [NC,OR]
+RewriteCond %{HTTP_REFERER} cityadspix\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} luxup\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} ykecwqlixx\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} superiends\.org [NC,OR]
+RewriteCond %{HTTP_REFERER} slftsdybbg\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} edakgfvwql\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} socialseet\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} screentoolkit\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} econom\.co [NC,OR]
+RewriteCond %{HTTP_REFERER} semalt\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} savetubevideo\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} shopping\.ilovevitaly\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} iedit\.ilovevitaly\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} forum\.topic52548358\.darodar\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} 7makemoneyonline\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} make-money-online\.7makemoneyonline\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} forum\.topic53813291\.darodar\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} hulfingtonpost\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} 12masterov\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} este-line\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} bestwebsitesawards\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} cardiosport\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} customsua\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} ghazel\.ru [NC,OR]
+RewriteCond %{HTTP_REFERER} maridan\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} med-zdorovie\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} dipstar\.org [NC,OR]
+RewriteCond %{HTTP_REFERER} o-o-6-o-o\.com [NC,OR]
+RewriteCond %{HTTP_REFERER} it-max\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} maridan\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} delfin-aqua\.com\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} dvr\.biz\.ua [NC,OR]
+RewriteCond %{HTTP_REFERER} blackhatworth\.com [NC]
+RewriteRule .* – [F]
