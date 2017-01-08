@@ -15,7 +15,6 @@ bold='\033[1m'
 black='\033[30m'
 gray='\033[37m'
 normal='\033[0m'
-
 # Jump a line
 function line {
 	echo " "
@@ -59,7 +58,7 @@ read -p "Titre du projet ? " title
 if [ -z "$title" ]
 	then
 		error 'Renseigner un titre pour le site'
-		exit
+	exit
 fi
 
 # On récupère le login admin
@@ -90,15 +89,9 @@ if [ -z "$prefix" ]
 		exit
 fi
 
-# On récupère l'ID admin
+# On récupère la future URL du site pour changer le htaccess
 # Si pas de valeur renseignée, message d'erreur et exit
-read -p "ID Admin ? " idadmin
-if [ -z "$idadmin" ]
-	then
-		error 'ID admin'
-		exit
-fi
-
+read -p "URL du futur site ? " urlsite
 
 # Paths
 path=`pwd` #Repertoir courant du  script
@@ -108,12 +101,15 @@ url="http://localhost:8888/$foldername/"
 
 #Variables
 acfkey="b3JkZXJfaWQ9Nzc2NjF8dHlwZT1kZXZlbG9wZXJ8ZGF0ZT0yMDE2LTAzLTE4IDE1OjU4OjA0"
+#ID admin et editor (idamin générer par RANDOM)
+idadmin=$[ ( $RANDOM % 500 )  + 100 ]
 ideditor=`expr $idadmin + 1`
 
 # Fichiers à inclure
 maj="${path}/maj_htaccess.txt"
 htaccess_includes="${path}/htaccess_dossier_includes.txt"
 htaccess_content_upload="${path}/htaccess_dossier_content_upload.txt"
+robots="${path}/robots.txt"
 
 # Admin Email
 adminemail="contact@lgmcreation.fr"
@@ -129,7 +125,6 @@ echo "--------------------------------------"
 echo -e "Url : $url"
 echo -e "Foldername : $foldername"
 echo -e "Titre du projet : $title"
-echo -e "Id editeur : $ideditor"
 echo "--------------------------------------"
 #  ==============================
 #  = The show is about to begin =
@@ -212,12 +207,12 @@ mv wordpress $foldername
 
 # Modifie le fichier style.sccss
 bot "Je modifie le fichier style.sccss du thème $foldername"
-echo "/* 
+sed -i "1i\\/* 
 	Theme Name: $foldername
 	Author: Lgmcreation
 	Author URI: http://www.lgmcreation.fr
 	Version: 1.0.0
-*/" > $foldername/dev/css/_version.scss
+*/" $foldername/dev/css/style.scss
 
 # Supprime le dossier cache git 
 find ./ -depth -name ".git" -exec rm -Rf {}
@@ -299,6 +294,11 @@ wp menu location assign menu-principal main-menu
 bot "J'ajoute des règles Apache dans le fichier htaccess"
 cd $pathtoinstall
 cat $maj >> .htaccess
+if [ -n "$urlsite" ]
+then
+    sed -i.bak "s/monsite\.com/lgmcreation\.fr/g" .htaccess
+	rm -f .htaccess.bak
+fi
 
 #Ajout htaccess wp-includes
 cp  $htaccess_includes $pathtoinstall/wp-includes/.htaccess
@@ -308,6 +308,9 @@ cp  $htaccess_includes $pathtoinstall/wp-content/.htaccess
 
 #Ajout htaccess wp-uplaod
 cp  $htaccess_content_upload $pathtoinstall/wp-content/uploads/.htaccess
+
+# J'ajoute les ficheir robots.txt
+cp  $robots $pathtoinstall/robots.txt
 
 rm -f license.txt
 rm -f readme.html
@@ -337,8 +340,3 @@ open "${url}wp-admin"
 cd wp-content/themes
 cd $foldername
 sublime .
-
-
-
-
-
