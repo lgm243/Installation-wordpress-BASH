@@ -90,7 +90,6 @@ if [ -z "$prefix" ]
 fi
 
 # On récupère la future URL du site pour changer le htaccess
-# Si pas de valeur renseignée, message d'erreur et exit
 read -p "URL du futur site ? " urlsite
 
 # Paths
