@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Automatize WordPress installation
+# WordPress installation
 # bash install.sh
 #
 # https://github.com/posykrat/dfwp_tools/blob/master/install.sh
@@ -93,7 +93,7 @@ fi
 read -p "URL du futur site ? " urlsite
 
 # Paths
-path=`pwd` #Repertoir courant du  script
+path=`pwd` #Repertoire courant du  script
 rootpath="/Applications/MAMP/htdocs/"
 pathtoinstall="${rootpath}${foldername}/"
 url="http://localhost:8888/$foldername/"
@@ -196,25 +196,22 @@ wp core install --url=$url --title="$title" --admin_user=$adminlogin --admin_ema
 
 # Télécharge thème Wordpress par default
 bot "Je télécharge mon thème de base"
-# cd $pathtoinstall
 cd wp-content/themes/
 git clone https://github.com/lgm243/wordpress.git
+
 
 # Modifie le nom du theme
 bot "Je modifie le nom du theme"
 mv wordpress $foldername
 
-# Modifie le fichier style.sccss
-bot "Je modifie le fichier style.sccss du thème $foldername"
-sed -i "1i\\/* 
-	Theme Name: $foldername
-	Author: Lgmcreation
-	Author URI: http://www.lgmcreation.fr
-	Version: 1.0.0
-*/" $foldername/dev/css/style.scss
+cd $foldername
+rm -rf .git
 
-# Supprime le dossier cache git 
-find ./ -depth -name ".git" -exec rm -Rf {}
+cd dev/css/
+# Modifie le fichier style.sccss (bak bug macos)
+bot "Je modifie le fichier style.sccss du thème $foldername"
+sed -i.bak "s/nouveausite/${title}/g" style.scss
+rm -f style.scss.bak
 
 # Activate theme
 bot "J'active le thème $foldername:"
@@ -339,3 +336,9 @@ open "${url}wp-admin"
 cd wp-content/themes
 cd $foldername
 sublime .
+
+#ouvre fenetre terminal et lance npm install pour gulp (window 1 pour rester sur la meme fenetre ouverte)
+osascript -e 'tell application "Terminal"
+    do script "cd '$pathtoinstall'/wp-content/themes/'$foldername'" activate
+    do script "npm install" in window 1
+end tell'
