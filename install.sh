@@ -1,6 +1,6 @@
-#!/bin/bash
+#!//bin/sh
 #
-# WordPress installation
+# Automatize WordPress installation
 # bash install.sh
 #
 # https://github.com/posykrat/dfwp_tools/blob/master/install.sh
@@ -92,14 +92,14 @@ fi
 # On récupère la future URL du site pour changer le htaccess
 read -p "URL du futur site ? " urlsite
 
-# Paths
+# Pathse courant du  script
 path=`pwd` #Repertoire courant du  script
 rootpath="/Applications/MAMP/htdocs/"
 pathtoinstall="${rootpath}${foldername}/"
 url="http://localhost:8888/$foldername/"
 
 #Variables
-acfkey="b3JkZXJfaWQ9Nzc2NjF8dHlwZT1kZXZlbG9wZXJ8ZGF0ZT0yMDE2LTAzLTE4IDE1OjU4OjA0"
+acfkey="macleacf"
 #ID admin et editor (idamin générer par RANDOM)
 idadmin=$[ ( $RANDOM % 500 )  + 100 ]
 ideditor=`expr $idadmin + 1`
@@ -186,11 +186,11 @@ define('AUTOSAVE_INTERVAL', 300 ); // seconds
 define('WP_DEBUG', true);
 PHP
 
-# Create database
+# Creation base de donnée
 bot "Je crée la base de données"
 wp db create
 
-# Launch install
+#installation wordpress
 bot "J'installe WordPress..."
 wp core install --url=$url --title="$title" --admin_user=$adminlogin --admin_email=$adminemail --admin_password=$adminpass
 
@@ -204,11 +204,16 @@ git clone https://github.com/lgm243/wordpress.git
 bot "Je modifie le nom du theme"
 mv wordpress $foldername
 
+#supprime le dossier cache git
 cd $foldername
 rm -rf .git
 
-cd dev/css/
+#modifie mon fichier gulpfile.js (adresse browserSync)
+sed -i.bak "s/nouveausite/${foldername}/g" gulpfile.js
+rm -f gulpfile.js.bak
+
 # Modifie le fichier style.sccss (bak bug macos)
+cd dev/css/
 bot "Je modifie le fichier style.sccss du thème $foldername"
 sed -i.bak "s/nouveausite/${title}/g" style.scss
 rm -f style.scss.bak
@@ -217,19 +222,20 @@ rm -f style.scss.bak
 bot "J'active le thème $foldername:"
 wp theme activate $foldername
 
-# # Plugins install
-# bot "J'installe les plugin yoast hidelogin"
-# wp plugin install wordpress-seo --activate
-# wp plugin install wps-hide-login 
+# Plugins install
+bot "J'installe les plugin yoast hidelogin"
+wp plugin install wp-seopress --activate
+wp plugin install wp-seopress-pro --activate
+wp plugin install wps-hide-login 
 
-# # Si on a bien une clé acf pro
-# bot "J'installe ACF PRO"
-# # cd $pathtoinstac
-# cd ..
-# cd plugins
-# curl -L -v 'http://connect.advancedcustomfields.com/index.php?p=pro&a=download&k='$acfkey > advanced-custom-fields-pro.zip
-# wp plugin install advanced-custom-fields-pro.zip --activate
-# rm -f advanced-custom-fields-pro.zip
+# Si on a bien une clé acf pro
+bot "J'installe ACF PRO"
+# cd $pathtoinstac
+cd ..
+cd plugins
+curl -L -v 'http://connect.advancedcustomfields.com/index.php?p=pro&a=download&k='$acfkey > advanced-custom-fields-pro.zip
+wp plugin install advanced-custom-fields-pro.zip --activate
+rm -f advanced-custom-fields-pro.zip
 
 # Supprime post articles terms
 bot "Je supprime les posts, comments et terms"
@@ -292,7 +298,7 @@ cd $pathtoinstall
 cat $maj >> .htaccess
 if [ -n "$urlsite" ]
 then
-    sed -i.bak "s/monsite\.com/lgmcreation\.fr/g" .htaccess
+    sed -i.bak "s/monsite\.com/${urlsite}/g" .htaccess
 	rm -f .htaccess.bak
 fi
 
@@ -337,7 +343,7 @@ cd wp-content/themes
 cd $foldername
 sublime .
 
-#ouvre fenetre terminal et lance npm install pour gulp (window 1 pour rester sur la meme fenetre ouverte)
+#ouvre fenetre terminal et lance npm install pour gulp (window 1 pour ester sur la meme fenetre ouverte)
 osascript -e 'tell application "Terminal"
     do script "cd '$pathtoinstall'/wp-content/themes/'$foldername'" activate
     do script "npm install" in window 1
